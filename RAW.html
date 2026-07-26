@@ -1,0 +1,94 @@
+async function loadMoveEdit(){
+  const txt = await load("move.edit");
+  if(!txt) return {};
+
+  const cfg = {};
+  txt.split("\n").forEach(line=>{
+    if(line.includes(":")){
+      const [k,v] = line.split(":");
+      cfg[k.trim()] = v.trim();
+    }
+  });
+  return cfg;
+}
+async function start(){
+
+  const MOVE = await loadMoveEdit();
+
+  const FILES = [
+    "P.room",
+    "README.md",
+    "id.html",
+    "move.edit",
+    // alle tmp-Dateien …
+    "RESPO_ARG_SCAN.tmp",
+    "SCHACH.tmp",
+    "arg.tmp",
+    "bauer.tmp",
+    "c.tmp",
+    "dame.tmp",
+    "edit.tmp",
+    "error.tmp",
+    "fit.tmp",
+    "help.tmp",
+    "in.tmp",
+    "morph.tmp",
+    "nord.tmp",
+    "octa.tmp",
+    "operator.tmp",
+    "ost.tmp",
+    "pferd.tmp",
+    "q.tmp",
+    "schachac.tmp",
+    "score.tmp",
+    "skat.tmp",
+    "sued.tmp",
+    "tetriz.tmp",
+    "tmp.a",
+    "tmp.e",
+    "tmp.g",
+    "tmp.h",
+    "tmp.o",
+    "tmp.po.raer.tmp",
+    "tmp.s",
+    "up.tmp",
+    "west.tmp",
+    "x.tmp",
+    "xarg.tmp",
+    "z.tmp"
+  ];
+
+  // FILTER
+  const filtered = MOVE.HIDE ? FILES.filter(f => f !== MOVE.HIDE) : FILES;
+
+  // ORDER
+  if(MOVE.ORDER === "asc") filtered.sort();
+  if(MOVE.ORDER === "desc") filtered.sort().reverse();
+
+  const out = document.getElementById("out");
+
+  for(const f of filtered){
+    const content = await load(f);
+    const vec = vector(content || "");
+
+    const div = document.createElement("div");
+    div.className = "panel";
+
+    // HIGHLIGHT
+    if(MOVE.HIGHLIGHT === f){
+      div.style.borderColor = "#ff00ff";
+      div.style.boxShadow = "0 0 10px #ff00ff";
+    }
+
+    div.innerHTML = `
+      <h2>${f} — ${status(content)}</h2>
+      <pre>${content ? content.substring(0,300) : "FEHLT"}</pre>
+      <pre>
+Länge: ${vec.LEN}
+Zeilen: ${vec.LINES}
+Status: ${vec.STATE}
+      </pre>
+    `;
+    out.appendChild(div);
+  }
+}
