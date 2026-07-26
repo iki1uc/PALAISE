@@ -14,6 +14,7 @@
     padding:15px;
     margin:20px 0;
     border-radius:8px;
+    transition:0.3s;
   }
 
   .panel h2 {
@@ -28,6 +29,18 @@
     border-radius:6px;
     white-space:pre-wrap;
   }
+
+  .neon {
+    border-color:#ff00ff !important;
+    box-shadow:0 0 10px #ff00ff;
+  }
+
+  .group-title {
+    color:#ffcc00;
+    font-size:20px;
+    margin-top:40px;
+    text-shadow:0 0 10px #ffcc00;
+  }
 </style>
 
 <script>
@@ -40,6 +53,33 @@ async function load(path){
   }catch(e){
     return null;
   }
+}
+
+// move.edit laden
+async function loadMoveEdit(){
+  const txt = await load("move.edit");
+  if(!txt) return {};
+
+  const cfg = {};
+  txt.split("\n").forEach(line=>{
+    if(line.includes(":")){
+      const [k,v] = line.split(":");
+      cfg[k.trim()] = v.trim();
+    }
+  });
+
+  // GROUP einlesen
+  if(txt.includes("GROUP")){
+    const g = [];
+    txt.split("\n").forEach(line=>{
+      if(line.trim().startsWith("-")){
+        g.push(line.replace("-", "").trim());
+      }
+    });
+    cfg.GROUP = g;
+  }
+
+  return cfg;
 }
 
 // Vektor
@@ -60,12 +100,15 @@ function status(content){
 
 async function start(){
 
+  const MOVE = await loadMoveEdit();
+
   const FILES = [
     "P.room",
     "README.md",
     "id.html",
+    "move.edit",
 
-    // tmp-Module
+    // TMP-Cluster
     "RESPO_ARG_SCAN.tmp",
     "SCHACH.tmp",
     "arg.tmp",
@@ -103,14 +146,69 @@ async function start(){
     "z.tmp"
   ];
 
+  // FILTER erweitern
+  let filtered = FILES;
+
+  if(MOVE.FILTER && MOVE.FILTER !== "none"){
+    filtered = filtered.filter(f => f.includes(MOVE.FILTER));
+  }
+
+  if(MOVE.HIDE){
+    filtered = filtered.filter(f => f !== MOVE.HIDE);
+  }
+
+  // ORDER
+  if(MOVE.ORDER === "asc") filtered.sort();
+  if(MOVE.ORDER === "desc") filtered.sort().reverse();
+
   const out = document.getElementById("out");
 
-  for(const f of FILES){
+  // GROUP-System aktivieren
+  if(MOVE.GROUP && MOVE.GROUP.length > 0){
+    const groupTitle = document.createElement("div");
+    groupTitle.className = "group-title";
+    groupTitle.innerText = "Gruppierte Dateien";
+    out.appendChild(groupTitle);
+
+    MOVE.GROUP.forEach(async gfile=>{
+      const content = await load(gfile);
+      const vec = vector(content || "");
+
+      const div = document.createElement("div");
+      div.className = "panel";
+
+      if(MOVE.STYLE === "neon") div.classList.add("neon");
+      if(MOVE.HIGHLIGHT === gfile) div.classList.add("neon");
+
+      div.innerHTML = `
+        <h2>${gfile} — ${status(content)}</h2>
+        <pre>${content ? content.substring(0,300) : "FEHLT"}</pre>
+        <pre>
+Länge: ${vec.LEN}
+Zeilen: ${vec.LINES}
+Status: ${vec.STATE}
+        </pre>
+      `;
+      out.appendChild(div);
+    });
+
+    const sep = document.createElement("hr");
+    out.appendChild(sep);
+  }
+
+  // normale Dateien
+  for(const f of filtered){
+    if(MOVE.GROUP && MOVE.GROUP.includes(f)) continue;
+
     const content = await load(f);
     const vec = vector(content || "");
 
     const div = document.createElement("div");
     div.className = "panel";
+
+    if(MOVE.STYLE === "neon") div.classList.add("neon");
+    if(MOVE.HIGHLIGHT === f) div.classList.add("neon");
+
     div.innerHTML = `
       <h2>${f} — ${status(content)}</h2>
       <pre>${content ? content.substring(0,300) : "FEHLT"}</pre>
