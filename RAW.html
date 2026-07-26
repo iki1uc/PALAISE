@@ -1,3 +1,48 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>P · Palais · RAW · Move.Edit · TMP-Cluster</title>
+
+<style>
+  body { background:#000; color:#00ffff; font-family:Consolas; padding:20px; }
+  h1 { color:#33ccff; text-shadow:0 0 10px #00ffff; margin-bottom:20px; }
+
+  .panel {
+    background:#111;
+    border:1px solid #333;
+    padding:15px;
+    margin:20px 0;
+    border-radius:8px;
+  }
+
+  .panel h2 {
+    color:#33ccff;
+    margin-top:0;
+  }
+
+  pre {
+    background:#000;
+    border:1px solid #333;
+    padding:12px;
+    border-radius:6px;
+    white-space:pre-wrap;
+  }
+</style>
+
+<script>
+// Datei laden
+async function load(path){
+  try{
+    const r = await fetch("./" + path);
+    if(!r.ok) return null;
+    return await r.text();
+  }catch(e){
+    return null;
+  }
+}
+
+// move.edit laden
 async function loadMoveEdit(){
   const txt = await load("move.edit");
   if(!txt) return {};
@@ -11,6 +56,23 @@ async function loadMoveEdit(){
   });
   return cfg;
 }
+
+// Vektor
+function vector(content){
+  return {
+    LEN: content.length,
+    LINES: content.split("\n").length,
+    STATE: content.includes("ERR") ? "kritisch" : "neutral"
+  };
+}
+
+// Status
+function status(content){
+  if(!content) return "FEHLT";
+  if(content.includes("ERR")) return "ORANGE";
+  return "GRÜN";
+}
+
 async function start(){
 
   const MOVE = await loadMoveEdit();
@@ -20,7 +82,8 @@ async function start(){
     "README.md",
     "id.html",
     "move.edit",
-    // alle tmp-Dateien …
+
+    // TMP-Cluster
     "RESPO_ARG_SCAN.tmp",
     "SCHACH.tmp",
     "arg.tmp",
@@ -59,7 +122,10 @@ async function start(){
   ];
 
   // FILTER
-  const filtered = MOVE.HIDE ? FILES.filter(f => f !== MOVE.HIDE) : FILES;
+  let filtered = FILES;
+  if(MOVE.HIDE){
+    filtered = filtered.filter(f => f !== MOVE.HIDE);
+  }
 
   // ORDER
   if(MOVE.ORDER === "asc") filtered.sort();
@@ -92,3 +158,14 @@ Status: ${vec.STATE}
     out.appendChild(div);
   }
 }
+</script>
+</head>
+
+<body onload="start()">
+
+<h1>P · Palais · RAW · Move.Edit</h1>
+
+<div id="out"></div>
+
+</body>
+</html>
