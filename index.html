@@ -1,143 +1,163 @@
-export const PARTICLES = [];
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>IKI1UC · COSMIC CONTROL ROOM · RUN ∞</title>
 
-function spawnParticle(agentState, aura) {
-
-    PARTICLES.push({
-        x: agentState.position.x,
-        y: agentState.position.y,
-        z: agentState.position.z,
-
-        vx: aura.truthAura * 0.03,
-        vy: aura.driftAura * 0.02,
-        vz: aura.tensorAura * 0.025,
-
-        size: 4 + aura.truthAura * 8,
-        rotation: agentState.rotation.x * 0.1,
-
-        color: aura.elementAura,
-
-        spiralPhase: agentState.rotation.y * 0.2,
-        wavePhase: aura.waveAura,
-        fractalPhase: Math.random() * 3.14,
-
-        chromaticShift: aura.fieldAura,
-        tensorBoost: aura.tensorAura,
-        truthBloom: aura.truthAura,
-
-        clusterID: Math.floor(Math.random() * 6),
-
-        trail: [],
-        afterimage: [],
-
-        life: 1.0
-    });
+<style>
+body {
+    margin: 0;
+    background: #000;
+    color: #0ff;
+    font-family: Consolas;
+    overflow: hidden;
 }
-function updateParticles() {
-    for (let p of PARTICLES) {
 
-        // Spiralbewegung
-        p.x += Math.sin(p.spiralPhase) * 0.03 + p.vx;
-        p.y += Math.cos(p.spiralPhase) * 0.03 + p.vy;
-        p.spiralPhase += 0.12;
+/* Cosmic UI */
+#cosmic-ui {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 320px;
+    padding: 12px;
+    border: 1px solid #0ff;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.45);
+    box-shadow: 0 0 12px #0ff;
+}
 
-        // Fraktalbewegung
-        const fract = Math.sin(p.fractalPhase * 3.14) * 0.02;
-        p.x += fract * p.tensorBoost;
-        p.y -= fract * p.driftAura;
-        p.fractalPhase += 0.05;
+.section {
+    margin-bottom: 12px;
+}
 
-        // Wave propagation
-        p.x += Math.sin(p.wavePhase * 6.28) * 0.01;
-        p.y += Math.cos(p.wavePhase * 6.28) * 0.01;
-        p.wavePhase += 0.03;
+.section-title {
+    font-size: 14px;
+    color: #0ff;
+    margin-bottom: 6px;
+    text-shadow: 0 0 6px #0ff;
+}
 
-        // Truth bloom → Lichtausdehnung
-        p.size += p.truthBloom * 0.02;
+#module-list {
+    max-height: 300px;
+    overflow-y: auto;
+    font-size: 12px;
+}
 
-        // Chromatic shift → Farbverschiebung
-        p.color = [
-            p.color[0] + p.chromaticShift * 0.2,
-            p.color[1] + p.chromaticShift * 0.1,
-            p.color[2] + p.chromaticShift * 0.3
-        ];
+canvas {
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+</style>
 
-        // Cluster‑Intelligenz
-        p.vx += p.clusterID * 0.002;
-        p.vy -= p.clusterID * 0.002;
+<script type="module">
 
-        // Trails
-        p.trail.push({ x: p.x, y: p.y, z: p.z });
-        if (p.trail.length > 20) p.trail.shift();
+/* ————————————————————————————————
+   1) UNIVERSUM-SCANNER
+——————————————————————————————— */
 
-        // Afterimage
-        p.afterimage.push({ x: p.x, y: p.y, z: p.z, size: p.size * 0.5 });
-        if (p.afterimage.length > 10) p.afterimage.shift();
+async function scanRepo() {
+    const res = await fetch("./");
+    const html = await res.text();
+    const doc = new DOMParser().parseFromString(html, "text/html");
 
-        // Leben
-        p.life -= 0.015;
+    const files = [...doc.querySelectorAll("a")]
+        .map(a => a.getAttribute("href"))
+        .filter(f => f.match(/\.(js|json|html)$/));
+
+    return files;
+}
+
+/* ————————————————————————————————
+   2) UNIVERSUM-LOADER
+——————————————————————————————— */
+
+async function loadModules(files) {
+    const loaded = [];
+
+    for (const f of files) {
+        try {
+            if (f.endsWith(".js")) {
+                await import(`./${f}`);
+                loaded.push({ file: f, type: "js", status: "OK" });
+            }
+            else if (f.endsWith(".json")) {
+                const data = await fetch(`./${f}`).then(r => r.json());
+                loaded.push({ file: f, type: "json", status: "OK", data });
+            }
+            else {
+                loaded.push({ file: f, type: "html", status: "OK" });
+            }
+        } catch (err) {
+            loaded.push({ file: f, type: "error", status: "FAIL", error: err });
+        }
     }
 
-    // Entfernen
-    for (let i = PARTICLES.length - 1; i >= 0; i--) {
-        if (PARTICLES[i].life <= 0) PARTICLES.splice(i, 1);
-    }
+    return loaded;
 }
-if (aura.truthAura > 0.85) {
-    for (let i = 0; i < 8; i++) spawnParticle(agentState, aura);
+
+/* ————————————————————————————————
+   3) COSMIC VISUALIZER — dein Shader
+——————————————————————————————— */
+
+const canvas = document.createElement("canvas");
+canvas.width = window.innerWidth - 340;
+canvas.height = window.innerHeight;
+document.body.appendChild(canvas);
+
+const gl = canvas.getContext("webgl");
+
+function compile(type, src) {
+    const sh = gl.createShader(type);
+    gl.shaderSource(sh, src);
+    gl.compileShader(sh);
+    return sh;
 }
+
+const vs = compile(gl.VERTEX_SHADER, `
 attribute vec3 position;
-uniform vec3 particlePos;
-uniform float size;
-
+varying vec3 vPos;
 void main() {
-    gl_Position = vec4(position + particlePos, 1.0);
-    gl_PointSize = size;
+    vPos = position;
+    gl_Position = vec4(position, 1.0);
 }
+`);
+
+const fs = compile(gl.FRAGMENT_SHADER, `
 precision mediump float;
 
-uniform float life;
 uniform float truthAura;
+uniform float mythAura;
 uniform float driftAura;
 uniform float tensorAura;
-uniform float chromaticShift;
-uniform vec3 color;
+uniform float orbitAura;
+uniform float pulseAura;
+uniform float waveAura;
+uniform float fieldAura;
+uniform vec3 elementAura;
 
-void main() {
+varying vec3 vPos;
 
-    float glow = truthAura * 0.8;
-    float chaos = driftAura * 0.4;
-    float pulse = sin(tensorAura * 6.28);
+float waveField(vec3 p, float w) {
+    return sin(p.x * 3.14 + w * 6.28) *
+           cos(p.y * 3.14 + w * 3.14);
+}
 
-    vec3 finalColor = vec3(
-        color.r + glow + chromaticShift * 0.2,
-        color.g + chaos + chromaticShift * 0.1,
-        color.b + pulse + chromaticShift * 0.3
+vec3 chromaticRift(vec3 c, float f) {
+    return vec3(
+        c.r + f * 0.25,
+        c.g + f * 0.10,
+        c.b + f * 0.35
     );
-
-    gl_FragColor = vec4(finalColor * life, 1.0);
 }
-function renderParticles(gl, program, particleMesh) {
 
-    gl.useProgram(program);
-
-    for (let p of PARTICLES) {
-
-        gl.uniform3f(gl.getUniformLocation(program, "particlePos"), p.x, p.y, p.z);
-        gl.uniform1f(gl.getUniformLocation(program, "size"), p.size);
-        gl.uniform1f(gl.getUniformLocation(program, "life"), p.life);
-
-        gl.uniform1f(gl.getUniformLocation(program, "truthAura"), p.truthBloom);
-        gl.uniform1f(gl.getUniformLocation(program, "driftAura"), p.vy);
-        gl.uniform1f(gl.getUniformLocation(program, "tensorAura"), p.tensorBoost);
-        gl.uniform1f(gl.getUniformLocation(program, "chromaticShift"), p.chromaticShift);
-
-        gl.uniform3fv(gl.getUniformLocation(program, "color"), p.color);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, particleMesh);
-        const posAttrib = gl.getAttribLocation(program, "position");
-        gl.enableVertexAttribArray(posAttrib);
-        gl.vertexAttribPointer(posAttrib, 3, gl.FLOAT, false, 0, 0);
-
-        gl.drawArrays(gl.POINTS, 0, 1);
-    }
+vec3 truthBloom(vec3 base, float t) {
+    return base * (1.0 + t * 1.5);
 }
+
+vec3 mythFog(float m) {
+    return vec3(0.05, 0.05, 0.1) * m;
+}
+
+vec3 fieldDistortion(float f) {
+    return vec3(f * 0.4, f
