@@ -1,74 +1,143 @@
+export const PARTICLES = [];
+
+function spawnParticle(agentState, aura) {
+
+    PARTICLES.push({
+        x: agentState.position.x,
+        y: agentState.position.y,
+        z: agentState.position.z,
+
+        vx: aura.truthAura * 0.03,
+        vy: aura.driftAura * 0.02,
+        vz: aura.tensorAura * 0.025,
+
+        size: 4 + aura.truthAura * 8,
+        rotation: agentState.rotation.x * 0.1,
+
+        color: aura.elementAura,
+
+        spiralPhase: agentState.rotation.y * 0.2,
+        wavePhase: aura.waveAura,
+        fractalPhase: Math.random() * 3.14,
+
+        chromaticShift: aura.fieldAura,
+        tensorBoost: aura.tensorAura,
+        truthBloom: aura.truthAura,
+
+        clusterID: Math.floor(Math.random() * 6),
+
+        trail: [],
+        afterimage: [],
+
+        life: 1.0
+    });
+}
+function updateParticles() {
+    for (let p of PARTICLES) {
+
+        // Spiralbewegung
+        p.x += Math.sin(p.spiralPhase) * 0.03 + p.vx;
+        p.y += Math.cos(p.spiralPhase) * 0.03 + p.vy;
+        p.spiralPhase += 0.12;
+
+        // Fraktalbewegung
+        const fract = Math.sin(p.fractalPhase * 3.14) * 0.02;
+        p.x += fract * p.tensorBoost;
+        p.y -= fract * p.driftAura;
+        p.fractalPhase += 0.05;
+
+        // Wave propagation
+        p.x += Math.sin(p.wavePhase * 6.28) * 0.01;
+        p.y += Math.cos(p.wavePhase * 6.28) * 0.01;
+        p.wavePhase += 0.03;
+
+        // Truth bloom → Lichtausdehnung
+        p.size += p.truthBloom * 0.02;
+
+        // Chromatic shift → Farbverschiebung
+        p.color = [
+            p.color[0] + p.chromaticShift * 0.2,
+            p.color[1] + p.chromaticShift * 0.1,
+            p.color[2] + p.chromaticShift * 0.3
+        ];
+
+        // Cluster‑Intelligenz
+        p.vx += p.clusterID * 0.002;
+        p.vy -= p.clusterID * 0.002;
+
+        // Trails
+        p.trail.push({ x: p.x, y: p.y, z: p.z });
+        if (p.trail.length > 20) p.trail.shift();
+
+        // Afterimage
+        p.afterimage.push({ x: p.x, y: p.y, z: p.z, size: p.size * 0.5 });
+        if (p.afterimage.length > 10) p.afterimage.shift();
+
+        // Leben
+        p.life -= 0.015;
+    }
+
+    // Entfernen
+    for (let i = PARTICLES.length - 1; i >= 0; i--) {
+        if (PARTICLES[i].life <= 0) PARTICLES.splice(i, 1);
+    }
+}
+if (aura.truthAura > 0.85) {
+    for (let i = 0; i < 8; i++) spawnParticle(agentState, aura);
+}
+attribute vec3 position;
+uniform vec3 particlePos;
+uniform float size;
+
+void main() {
+    gl_Position = vec4(position + particlePos, 1.0);
+    gl_PointSize = size;
+}
 precision mediump float;
 
+uniform float life;
 uniform float truthAura;
-uniform float mythAura;
 uniform float driftAura;
 uniform float tensorAura;
-uniform float orbitAura;
-uniform float pulseAura;
-uniform float waveAura;
-uniform float fieldAura;
-
-uniform vec3 elementAura;
-
-varying vec3 vPos;
-
-float waveField(vec3 p, float w) {
-    return sin(p.x * 3.14 + w * 6.28) *
-           cos(p.y * 3.14 + w * 3.14);
-}
-
-vec3 chromaticRift(vec3 c, float f) {
-    return vec3(
-        c.r + f * 0.25,
-        c.g + f * 0.10,
-        c.b + f * 0.35
-    );
-}
-
-vec3 truthBloom(vec3 base, float t) {
-    return base * (1.0 + t * 1.5);
-}
-
-vec3 mythFog(float m) {
-    return vec3(0.05, 0.05, 0.1) * m;
-}
-
-vec3 fieldDistortion(float f) {
-    return vec3(f * 0.4, f * 0.2, f * 0.1);
-}
-
-vec3 pulseHarmonics(float p) {
-    return vec3(
-        sin(p * 6.28),
-        sin(p * 3.14),
-        sin(p * 9.42)
-    ) * 0.3;
-}
-
-vec3 orbitShift(float o) {
-    return vec3(
-        sin(o),
-        sin(o * 0.5),
-        sin(o * 0.25)
-    );
-}
+uniform float chromaticShift;
+uniform vec3 color;
 
 void main() {
 
-    vec3 base = elementAura;
+    float glow = truthAura * 0.8;
+    float chaos = driftAura * 0.4;
+    float pulse = sin(tensorAura * 6.28);
 
-    float wave = waveField(vPos, waveAura);
+    vec3 finalColor = vec3(
+        color.r + glow + chromaticShift * 0.2,
+        color.g + chaos + chromaticShift * 0.1,
+        color.b + pulse + chromaticShift * 0.3
+    );
 
-    vec3 color =
-        truthBloom(base, truthAura) +
-        pulseHarmonics(pulseAura) +
-        orbitShift(orbitAura) +
-        fieldDistortion(fieldAura) +
-        vec3(wave) -
-        mythFog(mythAura);
+    gl_FragColor = vec4(finalColor * life, 1.0);
+}
+function renderParticles(gl, program, particleMesh) {
 
-    color = chromaticRift(color, fieldAura);
+    gl.useProgram(program);
 
-    gl_FragColor = vec4(color, 1.0);
+    for (let p of PARTICLES) {
+
+        gl.uniform3f(gl.getUniformLocation(program, "particlePos"), p.x, p.y, p.z);
+        gl.uniform1f(gl.getUniformLocation(program, "size"), p.size);
+        gl.uniform1f(gl.getUniformLocation(program, "life"), p.life);
+
+        gl.uniform1f(gl.getUniformLocation(program, "truthAura"), p.truthBloom);
+        gl.uniform1f(gl.getUniformLocation(program, "driftAura"), p.vy);
+        gl.uniform1f(gl.getUniformLocation(program, "tensorAura"), p.tensorBoost);
+        gl.uniform1f(gl.getUniformLocation(program, "chromaticShift"), p.chromaticShift);
+
+        gl.uniform3fv(gl.getUniformLocation(program, "color"), p.color);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, particleMesh);
+        const posAttrib = gl.getAttribLocation(program, "position");
+        gl.enableVertexAttribArray(posAttrib);
+        gl.vertexAttribPointer(posAttrib, 3, gl.FLOAT, false, 0, 0);
+
+        gl.drawArrays(gl.POINTS, 0, 1);
+    }
 }
