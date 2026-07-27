@@ -1,5 +1,5 @@
 PALAISE_RESPO.truth = function(name) {
   const human = DB.human[name];
   const universal = DB.universal[name];
-  return UWM.analyze(name, human, universal);
+  return UTM.analyze(name, human, universal);
 };
