@@ -1,0 +1,11 @@
+export const AGENT_TRUTH = {
+  tick(entityTruth) {
+    return {
+      mythLevel: entityTruth.mythLevel,
+      missingTruth: entityTruth.delta,
+      falseBeliefs: entityTruth.corrected.falseBeliefs,
+      energy: entityTruth.mythLevel * 0.5,
+      drift: Math.sin(entityTruth.mythLevel)
+    };
+  }
+};
