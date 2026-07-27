@@ -1,0 +1,18 @@
+  universal: {
+    "Casanova": [
+      "Schriftsteller",
+      "Bibliothekar",
+      "Philosoph",
+      "Mathematiker",
+      "Diplomat"
+    ],
+    "Uran": [
+      "natürliches Element",
+      "Supernova‑Produkt",
+      "Energie‑Speicher",
+      "Zeitmesser",
+      "Planetenschicht‑Indikator",
+      "kosmischer Marker"
+    ]
+  }
+};
