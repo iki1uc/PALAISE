@@ -1,0 +1,11 @@
+export const UWM = {
+  analyze(name, humanView, universalView) {
+    return {
+      person: name,
+      humanBelief: humanView,
+      universalTruth: universalView,
+      mythLevel: humanView.length / universalView.length,
+      delta: universalView.filter(x => !humanView.includes(x))
+    };
+  }
+};
