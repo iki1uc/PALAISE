@@ -1,0 +1,111 @@
+<div id="hud">
+    <div class="hud-section">
+        <div class="hud-title">AURA MATRIX</div>
+        <div id="auraMatrix"></div>
+    </div>
+
+    <div class="hud-section">
+        <div class="hud-title">TRUTH WAVE</div>
+        <canvas id="truthWave" width="240" height="80"></canvas>
+    </div>
+
+    <div class="hud-section">
+        <div class="hud-title">ORBIT SCOPE</div>
+        <canvas id="orbitScope" width="240" height="240"></canvas>
+    </div>
+
+    <div class="hud-section">
+        <div class="hud-title">PARTICLE RADAR</div>
+        <canvas id="particleRadar" width="240" height="240"></canvas>
+    </div>
+</div>
+#hud {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.hud-section {
+    background: rgba(0,0,0,0.45);
+    border: 1px solid #0ff;
+    box-shadow: 0 0 12px #0ff;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.hud-title {
+    font-size: 14px;
+    color: #0ff;
+    margin-bottom: 6px;
+    text-shadow: 0 0 6px #0ff;
+}
+function updateAuraMatrix(aura) {
+    const el = document.getElementById("auraMatrix");
+    el.innerHTML = `
+        Truth: ${aura.truthAura.toFixed(2)}<br>
+        Myth: ${aura.mythAura.toFixed(2)}<br>
+        Drift: ${aura.driftAura.toFixed(2)}<br>
+        Tensor: ${aura.tensorAura.toFixed(2)}<br>
+        Orbit: ${aura.orbitAura.toFixed(2)}<br>
+        Pulse: ${aura.pulseAura.toFixed(2)}<br>
+        Wave: ${aura.waveAura.toFixed(2)}<br>
+        Field: ${aura.fieldAura.toFixed(2)}
+    `;
+}
+const truthCanvas = document.getElementById("truthWave");
+const truthCtx = truthCanvas.getContext("2d");
+
+function drawTruthWave(aura) {
+    truthCtx.clearRect(0,0,240,80);
+    truthCtx.strokeStyle = "#0ff";
+    truthCtx.beginPath();
+
+    for (let x = 0; x < 240; x++) {
+        const y = 40 + Math.sin((x / 240) * Math.PI * 2 + aura.truthAura * 6.28) * 30;
+        truthCtx.lineTo(x, y);
+    }
+
+    truthCtx.stroke();
+}
+const orbitCanvas = document.getElementById("orbitScope");
+const orbitCtx = orbitCanvas.getContext("2d");
+
+function drawOrbitScope(aura) {
+    orbitCtx.clearRect(0,0,240,240);
+
+    orbitCtx.strokeStyle = "#0ff";
+    orbitCtx.beginPath();
+    orbitCtx.arc(120,120,80,0,Math.PI*2);
+    orbitCtx.stroke();
+
+    const x = 120 + Math.sin(aura.orbitAura) * 80;
+    const y = 120 + Math.cos(aura.orbitAura) * 80;
+
+    orbitCtx.fillStyle = "#0ff";
+    orbitCtx.beginPath();
+    orbitCtx.arc(x,y,6,0,Math.PI*2);
+    orbitCtx.fill();
+}
+const radarCanvas = document.getElementById("particleRadar");
+const radarCtx = radarCanvas.getContext("2d");
+
+function drawParticleRadar(particles) {
+    radarCtx.clearRect(0,0,240,240);
+
+    radarCtx.fillStyle = "#0ff";
+
+    for (let p of particles) {
+        const x = 120 + p.x * 20;
+        const y = 120 + p.y * 20;
+
+        radarCtx.fillRect(x, y, 2, 2);
+    }
+}
+updateAuraMatrix(aura);
+drawTruthWave(aura);
+drawOrbitScope(aura);
+drawParticleRadar(PARTICLES);
