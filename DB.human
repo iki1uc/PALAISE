@@ -1,0 +1,13 @@
+export const DB = {
+  human: {
+    "Casanova": [
+      "größter Liebhaber",
+      "Frauenheld",
+      "Mythos"
+    ],
+    "Uran": [
+      "gefährlich",
+      "radioaktiv",
+      "für Bomben"
+    ]
+  },
