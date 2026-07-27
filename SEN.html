@@ -1,0 +1,14 @@
+vec3 pulseHarmonics(float p) {
+    return vec3(
+        sin(p * 6.28),
+        sin(p * 3.14),
+        sin(p * 9.42)
+    ) * 0.3;
+}
+vec3 orbitShift(float o) {
+    return vec3(
+        sin(o),
+        sin(o * 0.5),
+        sin(o * 0.25)
+    );
+}
