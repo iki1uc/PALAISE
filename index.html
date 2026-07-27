@@ -1,234 +1,74 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-<meta charset="UTF-8">
-<title>P · Palais · Private RESPO · TMP-Cluster</title>
+precision mediump float;
 
-<style>
-  body { background:#000; color:#00ffff; font-family:Consolas; padding:20px; }
-  h1 { color:#33ccff; text-shadow:0 0 10px #00ffff; margin-bottom:20px; }
+uniform float truthAura;
+uniform float mythAura;
+uniform float driftAura;
+uniform float tensorAura;
+uniform float orbitAura;
+uniform float pulseAura;
+uniform float waveAura;
+uniform float fieldAura;
 
-  .panel {
-    background:#111;
-    border:1px solid #333;
-    padding:15px;
-    margin:20px 0;
-    border-radius:8px;
-    transition:0.3s;
-  }
+uniform vec3 elementAura;
 
-  .panel h2 {
-    color:#33ccff;
-    margin-top:0;
-  }
+varying vec3 vPos;
 
-  pre {
-    background:#000;
-    border:1px solid #333;
-    padding:12px;
-    border-radius:6px;
-    white-space:pre-wrap;
-  }
-
-  .neon {
-    border-color:#ff00ff !important;
-    box-shadow:0 0 10px #ff00ff;
-  }
-
-  .group-title {
-    color:#ffcc00;
-    font-size:20px;
-    margin-top:40px;
-    text-shadow:0 0 10px #ffcc00;
-  }
-</style>
-
-<script>
-// Datei laden
-async function load(path){
-  try{
-    const r = await fetch("./" + path);
-    if(!r.ok) return null;
-    return await r.text();
-  }catch(e){
-    return null;
-  }
+float waveField(vec3 p, float w) {
+    return sin(p.x * 3.14 + w * 6.28) *
+           cos(p.y * 3.14 + w * 3.14);
 }
 
-// move.edit laden
-async function loadMoveEdit(){
-  const txt = await load("move.edit");
-  if(!txt) return {};
-
-  const cfg = {};
-  txt.split("\n").forEach(line=>{
-    if(line.includes(":")){
-      const [k,v] = line.split(":");
-      cfg[k.trim()] = v.trim();
-    }
-  });
-
-  // GROUP einlesen
-  if(txt.includes("GROUP")){
-    const g = [];
-    txt.split("\n").forEach(line=>{
-      if(line.trim().startsWith("-")){
-        g.push(line.replace("-", "").trim());
-      }
-    });
-    cfg.GROUP = g;
-  }
-
-  return cfg;
+vec3 chromaticRift(vec3 c, float f) {
+    return vec3(
+        c.r + f * 0.25,
+        c.g + f * 0.10,
+        c.b + f * 0.35
+    );
 }
 
-// Vektor
-function vector(content){
-  return {
-    LEN: content.length,
-    LINES: content.split("\n").length,
-    STATE: content.includes("ERR") ? "kritisch" : "neutral"
-  };
+vec3 truthBloom(vec3 base, float t) {
+    return base * (1.0 + t * 1.5);
 }
 
-// Status
-function status(content){
-  if(!content) return "FEHLT";
-  if(content.includes("ERR")) return "ORANGE";
-  return "GRÜN";
+vec3 mythFog(float m) {
+    return vec3(0.05, 0.05, 0.1) * m;
 }
 
-async function start(){
-
-  const MOVE = await loadMoveEdit();
-
-  const FILES = [
-    "P.room",
-    "README.md",
-    "id.html",
-    "move.edit",
-
-    // TMP-Cluster
-    "RESPO_ARG_SCAN.tmp",
-    "SCHACH.tmp",
-    "arg.tmp",
-    "bauer.tmp",
-    "c.tmp",
-    "dame.tmp",
-    "edit.tmp",
-    "error.tmp",
-    "fit.tmp",
-    "help.tmp",
-    "in.tmp",
-    "morph.tmp",
-    "nord.tmp",
-    "octa.tmp",
-    "operator.tmp",
-    "ost.tmp",
-    "pferd.tmp",
-    "q.tmp",
-    "schachac.tmp",
-    "score.tmp",
-    "skat.tmp",
-    "sued.tmp",
-    "tetriz.tmp",
-    "tmp.a",
-    "tmp.e",
-    "tmp.g",
-    "tmp.h",
-    "tmp.o",
-    "tmp.po.raer.tmp",
-    "tmp.s",
-    "up.tmp",
-    "west.tmp",
-    "x.tmp",
-    "xarg.tmp",
-    "z.tmp"
-  ];
-
-  // FILTER erweitern
-  let filtered = FILES;
-
-  if(MOVE.FILTER && MOVE.FILTER !== "none"){
-    filtered = filtered.filter(f => f.includes(MOVE.FILTER));
-  }
-
-  if(MOVE.HIDE){
-    filtered = filtered.filter(f => f !== MOVE.HIDE);
-  }
-
-  // ORDER
-  if(MOVE.ORDER === "asc") filtered.sort();
-  if(MOVE.ORDER === "desc") filtered.sort().reverse();
-
-  const out = document.getElementById("out");
-
-  // GROUP-System aktivieren
-  if(MOVE.GROUP && MOVE.GROUP.length > 0){
-    const groupTitle = document.createElement("div");
-    groupTitle.className = "group-title";
-    groupTitle.innerText = "Gruppierte Dateien";
-    out.appendChild(groupTitle);
-
-    MOVE.GROUP.forEach(async gfile=>{
-      const content = await load(gfile);
-      const vec = vector(content || "");
-
-      const div = document.createElement("div");
-      div.className = "panel";
-
-      if(MOVE.STYLE === "neon") div.classList.add("neon");
-      if(MOVE.HIGHLIGHT === gfile) div.classList.add("neon");
-
-      div.innerHTML = `
-        <h2>${gfile} — ${status(content)}</h2>
-        <pre>${content ? content.substring(0,300) : "FEHLT"}</pre>
-        <pre>
-Länge: ${vec.LEN}
-Zeilen: ${vec.LINES}
-Status: ${vec.STATE}
-        </pre>
-      `;
-      out.appendChild(div);
-    });
-
-    const sep = document.createElement("hr");
-    out.appendChild(sep);
-  }
-
-  // normale Dateien
-  for(const f of filtered){
-    if(MOVE.GROUP && MOVE.GROUP.includes(f)) continue;
-
-    const content = await load(f);
-    const vec = vector(content || "");
-
-    const div = document.createElement("div");
-    div.className = "panel";
-
-    if(MOVE.STYLE === "neon") div.classList.add("neon");
-    if(MOVE.HIGHLIGHT === f) div.classList.add("neon");
-
-    div.innerHTML = `
-      <h2>${f} — ${status(content)}</h2>
-      <pre>${content ? content.substring(0,300) : "FEHLT"}</pre>
-      <pre>
-Länge: ${vec.LEN}
-Zeilen: ${vec.LINES}
-Status: ${vec.STATE}
-      </pre>
-    `;
-    out.appendChild(div);
-  }
+vec3 fieldDistortion(float f) {
+    return vec3(f * 0.4, f * 0.2, f * 0.1);
 }
-</script>
-</head>
 
-<body onload="start()">
+vec3 pulseHarmonics(float p) {
+    return vec3(
+        sin(p * 6.28),
+        sin(p * 3.14),
+        sin(p * 9.42)
+    ) * 0.3;
+}
 
-<h1>P · Palais · Private RESPO</h1>
+vec3 orbitShift(float o) {
+    return vec3(
+        sin(o),
+        sin(o * 0.5),
+        sin(o * 0.25)
+    );
+}
 
-<div id="out"></div>
+void main() {
 
-</body>
-</html>
+    vec3 base = elementAura;
+
+    float wave = waveField(vPos, waveAura);
+
+    vec3 color =
+        truthBloom(base, truthAura) +
+        pulseHarmonics(pulseAura) +
+        orbitShift(orbitAura) +
+        fieldDistortion(fieldAura) +
+        vec3(wave) -
+        mythFog(mythAura);
+
+    color = chromaticRift(color, fieldAura);
+
+    gl_FragColor = vec4(color, 1.0);
+}
