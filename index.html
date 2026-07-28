@@ -1,78 +1,281 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>NC‑HUB‑ALL · RUN 8 · 81E</title>
+
+<style>
+    body {
+        background:#0d0d0d;
+        color:#e6e6e6;
+        font-family:Arial, sans-serif;
+        margin:0;
+        padding:0;
+    }
+    header {
+        background:#111;
+        padding:25px;
+        border-bottom:2px solid #4af;
+        text-align:center;
+    }
+    header h1 {
+        font-size:34px;
+        color:#4af;
+        margin:0;
+    }
+    .whirl {
+        font-size:52px;
+        animation:spin 6s linear infinite;
+        margin-top:10px;
+    }
+    @keyframes spin {
+        from { transform:rotate(0deg); }
+        to { transform:rotate(360deg); }
+    }
+    .container {
+        max-width:1400px;
+        margin:30px auto;
+        padding:20px;
+    }
+    .panel {
+        background:#111;
+        border:1px solid #333;
+        border-radius:12px;
+        padding:20px;
+        margin-bottom:25px;
+        box-shadow:0 0 20px rgba(0,0,0,0.5);
+    }
+    .panel h2 {
+        color:#4af;
+        margin-bottom:10px;
+    }
+    pre {
+        background:#000;
+        padding:15px;
+        border-radius:8px;
+        border:1px solid #333;
+        white-space:pre-wrap;
+    }
+    button {
+        background:#222;
+        color:#fff;
+        border:1px solid #555;
+        padding:10px 20px;
+        cursor:pointer;
+        margin-top:10px;
+    }
+    button:hover {
+        background:#333;
+    }
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>NC‑HUB‑ALL · RUN 8 · 81E</h1>
+    <div class="whirl">🌀</div>
+</header>
+
+<div class="container">
+
+    <!-- NC-HUB-ALL PANEL -->
+    <div class="panel">
+        <h2>NC‑HUB‑ALL Output</h2>
+        <pre id="ncHubOutput">Bereit…</pre>
+        <button onclick="runNCHUB()">NC‑HUB‑ALL ausführen</button>
+    </div>
+
+    <!-- KI PANEL -->
+    <div class="panel">
+        <h2>NC_KI</h2>
+        <pre id="kiPanel">Bereit…</pre>
+        <button onclick="runKI()">KI ausführen</button>
+    </div>
+
+    <!-- AI PANEL -->
+    <div class="panel">
+        <h2>NC_AI</h2>
+        <pre id="aiPanel">Bereit…</pre>
+        <button onclick="runAI()">AI ausführen</button>
+    </div>
+
+    <!-- SCALE PANEL -->
+    <div class="panel">
+        <h2>NC_SCALE</h2>
+        <pre id="scalePanel">Bereit…</pre>
+        <button onclick="runScale()">SCALE ausführen</button>
+    </div>
+
+    <!-- WHIRL PANEL -->
+    <div class="panel">
+        <h2>NC_whirl</h2>
+        <pre id="whirlPanel">Bereit…</pre>
+        <button onclick="runWhirl()">Whirl ausführen</button>
+    </div>
+
+    <!-- LINEAR PANEL -->
+    <div class="panel">
+        <h2>NC_linear</h2>
+        <pre id="linearPanel">Bereit…</pre>
+        <button onclick="runLinear()">Linear ausführen</button>
+    </div>
+
+    <!-- PARALLEL PANEL -->
+    <div class="panel">
+        <h2>NC_parallel</h2>
+        <pre id="parallelPanel">Bereit…</pre>
+        <button onclick="runParallel()">Parallel ausführen</button>
+    </div>
+
+    <!-- DYNAMIC PANEL -->
+    <div class="panel">
+        <h2>NC_dynamic</h2>
+        <pre id="dynamicPanel">Bereit…</pre>
+        <button onclick="runDynamic()">Dynamic ausführen</button>
+    </div>
+
+    <!-- HUB 6D PANEL -->
+    <div class="panel">
+        <h2>HUB_6D</h2>
+        <pre id="hub6Panel">Bereit…</pre>
+        <button onclick="runHub6()">HUB‑6D ausführen</button>
+    </div>
+
+</div>
+
+<script>
+/* ---------------------------------------------------
+   Dein Originalcode (unverändert)
+--------------------------------------------------- */
+
 function NC_KI(vector) {
-  return {
-    RESPO_A: "KI(core) -> " + vector,
-    RESPO_B: "KI(h1) -> " + vector,
-    RESPO_C: "KI(e3) -> " + vector,
-    RESPO_D: "KI(matrix) -> " + vector
-  };
+    return {
+        RESPO_A: "KI(core) -> " + vector,
+        RESPO_B: "KI(h1) -> " + vector,
+        RESPO_C: "KI(e3) -> " + vector,
+        RESPO_D: "KI(matrix) -> " + vector
+    };
 }
 
 function NC_AI(vector) {
-  return {
-    RESPO_A: "AI(operator) -> " + vector,
-    RESPO_B: "AI(whirl) -> " + vector,
-    RESPO_C: "AI(w128) -> " + vector,
-    RESPO_D: "AI(win.inf) -> " + vector
-  };
+    return {
+        RESPO_A: "AI(operator) -> " + vector,
+        RESPO_B: "AI(whirl) -> " + vector,
+        RESPO_C: "AI(w128) -> " + vector,
+        RESPO_D: "AI(win.inf) -> " + vector
+    };
 }
 
 function NC_SCALE(vector) {
-  const axes = ["128","256","512","1024","2048","4096"];
-  const out = {};
-  axes.forEach(a => out["RESPO_" + a] = "Scale(" + a + ") -> " + vector);
-  return out;
+    const axes = ["128","256","512","1024","2048","4096"];
+    const out = {};
+    axes.forEach(a => out["RESPO_" + a] = "Scale(" + a + ") -> " + vector);
+    return out;
 }
 
 function NC_linear(vector) {
-  const nodes = ["RESPO_A","RESPO_B","RESPO_C","RESPO_D"];
-  const out = {};
-  nodes.forEach((n,i) => out[n] = "Linear(" + vector + ") -> " + n + " [Step " + (i+1) + "]");
-  return out;
+    const nodes = ["RESPO_A","RESPO_B","RESPO_C","RESPO_D"];
+    const out = {};
+    nodes.forEach((n,i) => out[n] = "Linear(" + vector + ") -> " + n + " [Step " + (i+1) + "]");
+    return out;
 }
 
 function NC_parallel(vector) {
-  const nodes = ["RESPO_A","RESPO_B","RESPO_C","RESPO_D"];
-  const out = {};
-  nodes.forEach(n => out[n] = "Parallel(" + vector + ") -> " + n);
-  return out;
+    const nodes = ["RESPO_A","RESPO_B","RESPO_C","RESPO_D"];
+    const out = {};
+    nodes.forEach(n => out[n] = "Parallel(" + vector + ") -> " + n);
+    return out;
 }
 
 function NC_whirl(vector) {
-  const order = ["RESPO_A","RESPO_C","RESPO_B","RESPO_D"];
-  const out = {};
-  order.forEach((n,i) => out[n] = "Whirl(" + vector + ") -> " + n + " [Spin " + (i+1) + "]");
-  return out;
+    const order = ["RESPO_A","RESPO_C","RESPO_B","RESPO_D"];
+    const out = {};
+    order.forEach((n,i) => out[n] = "Whirl(" + vector + ") -> " + n + " [Spin " + (i+1) + "]");
+    return out;
 }
 
 function NC_dynamic(vector) {
-  const nodes = ["RESPO_A","RESPO_B","RESPO_C","RESPO_D"];
-  const out = {};
-  nodes.forEach(n => out[n] = "Dynamic(" + vector.length + ") -> " + n);
-  return out;
+    const nodes = ["RESPO_A","RESPO_B","RESPO_C","RESPO_D"];
+    const out = {};
+    nodes.forEach(n => out[n] = "Dynamic(" + vector.length + ") -> " + n);
+    return out;
 }
 
 function HUB_6D(vector) {
-  return {
-    D0: "Root -> " + vector,
-    D1: "Achse -> " + vector,
-    D2: "TMP -> " + vector,
-    D3: "Lage -> " + vector,
-    D4: "Later -> " + vector,
-    D5: "Ort -> " + vector
-  };
+    return {
+        D0: "Root -> " + vector,
+        D1: "Achse -> " + vector,
+        D2: "TMP -> " + vector,
+        D3: "Lage -> " + vector,
+        D4: "Later -> " + vector,
+        D5: "Ort -> " + vector
+    };
 }
 
 function NC_HUB_All(vector) {
-  return {
-    KI: NC_KI(vector),
-    AI: NC_AI(vector),
-    SCALE: NC_SCALE(vector),
-    linear: NC_linear(vector),
-    parallel: NC_parallel(vector),
-    whirl: NC_whirl(vector),
-    dynamic: NC_dynamic(vector),
-    hub6D: HUB_6D(vector)
-  };
+    return {
+        KI: NC_KI(vector),
+        AI: NC_AI(vector),
+        SCALE: NC_SCALE(vector),
+        linear: NC_linear(vector),
+        parallel: NC_parallel(vector),
+        whirl: NC_whirl(vector),
+        dynamic: NC_dynamic(vector),
+        hub6D: HUB_6D(vector)
+    };
 }
 
-console.log("NC_HUB_ALL:", NC_HUB_All("v1024"));
+/* ---------------------------------------------------
+   RUN‑Buttons
+--------------------------------------------------- */
+
+function runNCHUB() {
+    document.getElementById("ncHubOutput").innerText =
+        JSON.stringify(NC_HUB_All("v1024"), null, 4);
+}
+
+function runKI() {
+    document.getElementById("kiPanel").innerText =
+        JSON.stringify(NC_KI("v1024"), null, 4);
+}
+
+function runAI() {
+    document.getElementById("aiPanel").innerText =
+        JSON.stringify(NC_AI("v1024"), null, 4);
+}
+
+function runScale() {
+    document.getElementById("scalePanel").innerText =
+        JSON.stringify(NC_SCALE("v1024"), null, 4);
+}
+
+function runWhirl() {
+    document.getElementById("whirlPanel").innerText =
+        JSON.stringify(NC_whirl("v1024"), null, 4);
+}
+
+function runLinear() {
+    document.getElementById("linearPanel").innerText =
+        JSON.stringify(NC_linear("v1024"), null, 4);
+}
+
+function runParallel() {
+    document.getElementById("parallelPanel").innerText =
+        JSON.stringify(NC_parallel("v1024"), null, 4);
+}
+
+function runDynamic() {
+    document.getElementById("dynamicPanel").innerText =
+        JSON.stringify(NC_dynamic("v1024"), null, 4);
+}
+
+function runHub6() {
+    document.getElementById("hub6Panel").innerText =
+        JSON.stringify(HUB_6D("v1024"), null, 4);
+}
+
+</script>
+
+</body>
+</html>
