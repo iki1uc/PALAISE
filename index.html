@@ -16,6 +16,18 @@
         border:1px solid #0f0;
         margin-bottom:20px;
     }
+    #moveWindow {
+        position:absolute;
+        left:20px;
+        top:20px;
+        width:250px;
+        height:200px;
+        background:#111;
+        border:1px solid #0f0;
+        color:#0f0;
+        padding:10px;
+        cursor:grab;
+    }
 </style>
 </head>
 
@@ -42,18 +54,7 @@
 <canvas id="pqVoxel3d" width="600" height="350"></canvas>
 
 <!-- move.edit Fenster -->
-<div id="moveWindow" style="
-    position:absolute;
-    left:20px;
-    top:20px;
-    width:250px;
-    height:200px;
-    background:#111;
-    border:1px solid #0f0;
-    color:#0f0;
-    padding:10px;
-    cursor:grab;
-">
+<div id="moveWindow">
     <div>
         <button id="minBtn">–</button>
         <button id="maxBtn">+</button>
@@ -75,9 +76,9 @@ import { PALAISE_RESPO } from "./PALAISE.RESPO.js";
 async function updateECO(){
     const truth = await PALAISE_RESPO.truth("BEN");
 
-    const env = truth.time6d.vector[2]; 
-    const comp = truth.pqVector.D0;     
-    const ops = truth.move.style;       
+    const env = truth.time6d.vector[2];
+    const comp = truth.pqVector.D0;
+    const ops = truth.move.style;
 
     const eco = document.getElementById("ecoTicker");
 
@@ -300,3 +301,26 @@ document.getElementById("minBtn").onclick = ()=>{
 };
 
 document.getElementById("maxBtn").onclick = ()=>{
+    minimized = false;
+    document.getElementById("moveContent").style.display = "block";
+};
+
+document.querySelectorAll("#moveTabs button").forEach(btn=>{
+    btn.onclick = async ()=>{
+        if(minimized) return;
+
+        const truth = await PALAISE_RESPO.truth("BEN");
+        const m = truth.move;
+
+        const tab = btn.dataset.tab;
+        const content = document.getElementById("moveContent");
+
+        if(tab==="style") content.innerHTML = `<b>Style:</b> ${m.style}`;
+        if(tab==="mode")  content.innerHTML = `<b>Mode:</b> ${m.mode}`;
+        if(tab==="filter")content.innerHTML = `<b>Filter:</b> ${m.filter}`;
+    };
+});
+</script>
+
+</body>
+</html>
