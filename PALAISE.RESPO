@@ -1,5 +1,19 @@
-PALAISE_RESPO.truth = function(name) {
-  const human = DB.human[name];
-  const universal = DB.universal[name];
-  return UTM.analyze(name, human, universal);
-};
+import { TIME_MATRIX } from "./TEM6D.matrix.js";
+import { KOOP_POOK_TIME } from "./TEM6D.koop.js";
+
+export function PALAISE_TIME(respoList, stations){
+
+    const matrix = TIME_MATRIX(stations);
+
+    const koopPookTime = respoList.map(r => ({
+        id: r.id,
+        mode: r.mode,
+        time: KOOP_POOK_TIME(r)
+    }));
+
+    return {
+        matrix,
+        koopPookTime,
+        projected: matrix.map(m => m.projected)
+    };
+}
