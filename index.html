@@ -2,7 +2,8 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>PALAISE · PQ · 6D Dashboard</title>
+<title>PALAISE · PQ · 6D Premium Engine</title>
+
 <style>
     body {
         background:#000;
@@ -26,79 +27,107 @@
         border:1px solid #0f0;
         font-family:monospace;
     }
+    #moveButtons {
+        margin-top:20px;
+    }
+    #moveButtons button {
+        background:#222;
+        color:#0f0;
+        border:1px solid #0f0;
+        padding:5px 10px;
+        margin-right:5px;
+        cursor:pointer;
+    }
 </style>
 </head>
 
 <body>
 
-<h1>PALAISE · PQ · 6D Dashboard</h1>
+<h1>PALAISE · PQ · 6D Premium Engine</h1>
 
-<!-- 2D Dashboard -->
-<canvas id="dashboard" width="600" height="350"></canvas>
+<!-- WebGL 3D Engine -->
+<canvas id="webgl3d" width="600" height="350"></canvas>
 
-<!-- 3D Rotation -->
-<canvas id="dashboard3d" width="600" height="350"></canvas>
+<!-- PQ Kugelwolke -->
+<canvas id="pqCloud" width="600" height="350"></canvas>
 
-<!-- PQ Hub -->
-<canvas id="pqHub" width="600" height="200"></canvas>
+<!-- 6D Heatmap -->
+<canvas id="heatmap" width="600" height="200"></canvas>
 
 <!-- move.edit Panel -->
 <div id="movePanel"></div>
 
+<!-- move.edit Buttons -->
+<div id="moveButtons"></div>
+
 <script type="module">
 import { PALAISE_RESPO } from "./PALAISE.RESPO.js";
 
-/* ---------------------------
-   1) 2D Dashboard
----------------------------- */
-async function renderDashboard(){
-    const truth = await PALAISE_RESPO.truth("BEN");
+/* ============================================================
+   1) PREMIUM WEBGL 3D ENGINE
+   ============================================================ */
 
-    const c = document.getElementById("dashboard");
-    const ctx = c.getContext("2d");
+const canvas = document.getElementById("webgl3d");
+const gl = canvas.getContext("webgl");
 
-    ctx.clearRect(0,0,600,350);
-
-    ctx.fillStyle = "#fff";
-    ctx.fillText("PALAISE · PQ · 6D Dashboard", 20, 40);
-
-    ctx.fillStyle = "#fc0";
-    ctx.fillText("Epoche: " + truth.move.epoche, 20, 80);
-
-    ctx.fillStyle = "#0f0";
-    ctx.fillText("ALT: " + truth.time6d.vector[0].toFixed(6), 20, 120);
-
-    ctx.fillStyle = "#6cf";
-    ctx.fillText("REAL: " + truth.time6d.vector[2].toFixed(6), 20, 160);
-
-    ctx.fillStyle = "#f0f";
-    ctx.fillText("Drift: " + truth.truthFlow.drift.toFixed(6), 20, 200);
-
-    ctx.fillStyle = "#0ff";
-    ctx.fillText("Stability: " + truth.truthFlow.stability, 20, 240);
-
-    ctx.fillStyle = "#ff0";
-    ctx.fillText("PQ Root: " + truth.pqVector.D0, 20, 280);
+if(!gl){
+    alert("WebGL nicht verfügbar");
 }
-setInterval(renderDashboard, 300);
 
+const vs = `
+attribute vec3 pos;
+uniform float angle;
+uniform vec3 scale;
+void main(){
+    float c = cos(angle);
+    float s = sin(angle);
 
-/* ---------------------------
-   2) 3D Rotation
----------------------------- */
+    vec3 p = vec3(
+        pos.x*c - pos.y*s,
+        pos.x*s + pos.y*c,
+        pos.z
+    ) * scale;
+
+    gl_PointSize = 8.0;
+    gl_Position = vec4(p, 1.0);
+}
+`;
+
+const fs = `
+precision mediump float;
+uniform vec3 color;
+void main(){
+    gl_FragColor = vec4(color, 1.0);
+}
+`;
+
+function compile(type, src){
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, src);
+    gl.compileShader(shader);
+    return shader;
+}
+
+const vshader = compile(gl.VERTEX_SHADER, vs);
+const fshader = compile(gl.FRAGMENT_SHADER, fs);
+
+const prog = gl.createProgram();
+gl.attachShader(prog, vshader);
+gl.attachShader(prog, fshader);
+gl.linkProgram(prog);
+gl.useProgram(prog);
+
+const pos = gl.getAttribLocation(prog, "pos");
+const angleLoc = gl.getUniformLocation(prog, "angle");
+const scaleLoc = gl.getUniformLocation(prog, "scale");
+const colorLoc = gl.getUniformLocation(prog, "color");
+
+const buf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+
 let angle = 0;
 
-function rotate3D(x, y, z, a){
-    const cos = Math.cos(a);
-    const sin = Math.sin(a);
-    return {
-        x: x*cos - y*sin,
-        y: x*sin + y*cos,
-        z: z
-    };
-}
-
-async function render3D(){
+async function renderWebGL(){
     const truth = await PALAISE_RESPO.truth("BEN");
 
     const ALT = truth.time6d.vector[0];
@@ -108,32 +137,109 @@ async function render3D(){
     const drift = truth.truthFlow.drift;
     angle += drift * 0.1;
 
-    const p = rotate3D(ALT*200, GHOST*200, REAL*200, angle);
+    const vertices = new Float32Array([
+        ALT, GHOST, REAL,
+        -ALT, -GHOST, -REAL
+    ]);
 
-    const c = document.getElementById("dashboard3d");
-    const ctx = c.getContext("2d");
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 
-    ctx.clearRect(0,0,600,350);
+    gl.vertexAttribPointer(pos, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(pos);
 
-    ctx.fillStyle = "#fff";
-    ctx.fillText("PALAISE · PQ · 6D · 3D‑Rotation", 20, 40);
+    gl.uniform1f(angleLoc, angle);
+    gl.uniform3f(scaleLoc, 0.8, 0.8, 0.8);
+    gl.uniform3f(colorLoc, 0.0, 1.0, 0.0);
 
-    ctx.fillStyle = "#0f0";
-    ctx.beginPath();
-    ctx.arc(300 + p.x, 175 + p.y, 10, 0, Math.PI*2);
-    ctx.fill();
+    gl.clearColor(0,0,0,1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.drawArrays(gl.POINTS, 0, 2);
 }
-setInterval(render3D, 100);
+
+setInterval(renderWebGL, 100);
 
 
-/* ---------------------------
-   3) move.edit Panel
----------------------------- */
+/* ============================================================
+   2) PQ KUGELWOLKE (Shader Particle System)
+   ============================================================ */
+
+const cloud = document.getElementById("pqCloud");
+const gl2 = cloud.getContext("webgl");
+
+const vs2 = `
+attribute vec3 pos;
+void main(){
+    gl_PointSize = 3.0;
+    gl_Position = vec4(pos, 1.0);
+}
+`;
+
+const fs2 = `
+precision mediump float;
+void main(){
+    gl_FragColor = vec4(1.0, 0.5, 0.0, 1.0);
+}
+`;
+
+function compile2(type, src){
+    const shader = gl2.createShader(type);
+    gl2.shaderSource(shader, src);
+    gl2.compileShader(shader);
+    return shader;
+}
+
+const vshader2 = compile2(gl2.VERTEX_SHADER, vs2);
+const fshader2 = compile2(gl2.FRAGMENT_SHADER, fs2);
+
+const prog2 = gl2.createProgram();
+gl2.attachShader(prog2, vshader2);
+gl2.attachShader(prog2, fshader2);
+gl2.linkProgram(prog2);
+gl2.useProgram(prog2);
+
+const pos2 = gl2.getAttribLocation(prog2, "pos");
+const buf2 = gl2.createBuffer();
+gl2.bindBuffer(gl2.ARRAY_BUFFER, buf2);
+
+async function renderPQCloud(){
+    const truth = await PALAISE_RESPO.truth("BEN");
+    const hub = truth.pqVector;
+
+    const particles = [];
+
+    for(let i=0;i<300;i++){
+        particles.push(
+            hub.D0 + (Math.random()-0.5)*0.3,
+            hub.D1 + (Math.random()-0.5)*0.3,
+            hub.D2 + (Math.random()-0.5)*0.3
+        );
+    }
+
+    gl2.bufferData(gl2.ARRAY_BUFFER, new Float32Array(particles), gl2.STATIC_DRAW);
+
+    gl2.vertexAttribPointer(pos2, 3, gl2.FLOAT, false, 0, 0);
+    gl2.enableVertexAttribArray(pos2);
+
+    gl2.clearColor(0,0,0,1);
+    gl2.clear(gl2.COLOR_BUFFER_BIT);
+
+    gl2.drawArrays(gl2.POINTS, 0, 300);
+}
+
+setInterval(renderPQCloud, 200);
+
+
+/* ============================================================
+   3) move.edit Panel + Buttons
+   ============================================================ */
+
+const panel = document.getElementById("movePanel");
+
 async function updatePanel(){
     const truth = await PALAISE_RESPO.truth("BEN");
     const m = truth.move;
 
-    const panel = document.getElementById("movePanel");
     panel.innerHTML = `
         <b>move.edit</b><br>
         Style: ${m.style}<br>
@@ -145,43 +251,50 @@ async function updatePanel(){
 }
 setInterval(updatePanel, 200);
 
+const btnPanel = document.getElementById("moveButtons");
 
-/* ---------------------------
-   4) PQ Hub Animation
----------------------------- */
-async function renderPQ(){
+btnPanel.innerHTML = `
+<button id="btnNeon">Neon</button>
+<button id="btnPulse">Pulse</button>
+<button id="btnGhost">Ghost</button>
+<button id="btnReal">Real</button>
+<button id="btnAlt">Alt</button>
+`;
+
+async function applyStyle(style){
     const truth = await PALAISE_RESPO.truth("BEN");
-    const hub = truth.pqVector;
+    truth.move.style = style;
+}
 
-    const c = document.getElementById("pqHub");
+document.getElementById("btnNeon").onclick = ()=>applyStyle("neon");
+document.getElementById("btnPulse").onclick = ()=>applyStyle("neon-pulse");
+document.getElementById("btnGhost").onclick = ()=>applyStyle("ghost");
+document.getElementById("btnReal").onclick = ()=>applyStyle("real");
+document.getElementById("btnAlt").onclick = ()=>applyStyle("alt");
+
+
+/* ============================================================
+   4) 6D HEATMAP
+   ============================================================ */
+
+async function renderHeatmap(){
+    const truth = await PALAISE_RESPO.truth("BEN");
+
+    const c = document.getElementById("heatmap");
     const ctx = c.getContext("2d");
 
     ctx.clearRect(0,0,600,200);
 
-    ctx.fillStyle = "#fff";
-    ctx.fillText("PQ‑Hub · Animierte Achsen", 20, 30);
+    const values = truth.time6d.vector;
 
-    const baseX = 300;
-    const baseY = 100;
-
-    function drawAxis(label, value, offset, color){
-        ctx.strokeStyle = color;
-        ctx.beginPath();
-        ctx.moveTo(baseX, baseY);
-        ctx.lineTo(baseX + value*200, baseY + offset);
-        ctx.stroke();
-        ctx.fillStyle = color;
-        ctx.fillText(label + ": " + value.toFixed(6), baseX + value*200 + 10, baseY + offset);
-    }
-
-    drawAxis("D0 Root", hub.D0, -40, "#0f0");
-    drawAxis("D1 Achse", hub.D1, -20, "#6cf");
-    drawAxis("D2 TMP", hub.D2, 0, "#fc0");
-    drawAxis("D3 Lage", hub.D3, 20, "#f0f");
-    drawAxis("D4 Later", hub.D4, 40, "#0ff");
-    drawAxis("D5 Ort", hub.D5, 60, "#f00");
+    values.forEach((v,i)=>{
+        const col = Math.floor(v*255);
+        ctx.fillStyle = `rgb(${col},0,${255-col})`;
+        ctx.fillRect(i*200,0,200,200);
+    });
 }
-setInterval(renderPQ, 200);
+
+setInterval(renderHeatmap, 200);
 
 </script>
 
