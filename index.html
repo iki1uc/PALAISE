@@ -1,10 +1,57 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>PALAISE · PQ · 6D Dashboard</title>
+<style>
+    body {
+        background:#000;
+        color:#0f0;
+        font-family:monospace;
+        margin:0;
+        padding:20px;
+    }
+    canvas {
+        border:1px solid #0f0;
+        margin-bottom:20px;
+    }
+    #movePanel {
+        position:absolute;
+        right:20px;
+        top:20px;
+        width:200px;
+        padding:10px;
+        background:#111;
+        color:#0f0;
+        border:1px solid #0f0;
+        font-family:monospace;
+    }
+</style>
+</head>
+
+<body>
+
+<h1>PALAISE · PQ · 6D Dashboard</h1>
+
+<!-- 2D Dashboard -->
 <canvas id="dashboard" width="600" height="350"></canvas>
+
+<!-- 3D Rotation -->
+<canvas id="dashboard3d" width="600" height="350"></canvas>
+
+<!-- PQ Hub -->
+<canvas id="pqHub" width="600" height="200"></canvas>
+
+<!-- move.edit Panel -->
+<div id="movePanel"></div>
 
 <script type="module">
 import { PALAISE_RESPO } from "./PALAISE.RESPO.js";
 
+/* ---------------------------
+   1) 2D Dashboard
+---------------------------- */
 async function renderDashboard(){
-
     const truth = await PALAISE_RESPO.truth("BEN");
 
     const c = document.getElementById("dashboard");
@@ -33,6 +80,115 @@ async function renderDashboard(){
     ctx.fillStyle = "#ff0";
     ctx.fillText("PQ Root: " + truth.pqVector.D0, 20, 280);
 }
-
 setInterval(renderDashboard, 300);
+
+
+/* ---------------------------
+   2) 3D Rotation
+---------------------------- */
+let angle = 0;
+
+function rotate3D(x, y, z, a){
+    const cos = Math.cos(a);
+    const sin = Math.sin(a);
+    return {
+        x: x*cos - y*sin,
+        y: x*sin + y*cos,
+        z: z
+    };
+}
+
+async function render3D(){
+    const truth = await PALAISE_RESPO.truth("BEN");
+
+    const ALT = truth.time6d.vector[0];
+    const GHOST = truth.time6d.vector[1];
+    const REAL = truth.time6d.vector[2];
+
+    const drift = truth.truthFlow.drift;
+    angle += drift * 0.1;
+
+    const p = rotate3D(ALT*200, GHOST*200, REAL*200, angle);
+
+    const c = document.getElementById("dashboard3d");
+    const ctx = c.getContext("2d");
+
+    ctx.clearRect(0,0,600,350);
+
+    ctx.fillStyle = "#fff";
+    ctx.fillText("PALAISE · PQ · 6D · 3D‑Rotation", 20, 40);
+
+    ctx.fillStyle = "#0f0";
+    ctx.beginPath();
+    ctx.arc(300 + p.x, 175 + p.y, 10, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle = "#6cf";
+    ctx.fillText("ALT: " + ALT.toFixed(6), 20, 80);
+    ctx.fillText("GHOST: " + GHOST.toFixed(6), 20, 120);
+    ctx.fillText("REAL: " + REAL.toFixed(6), 20, 160);
+}
+setInterval(render3D, 100);
+
+
+/* ---------------------------
+   3) move.edit Panel
+---------------------------- */
+async function updatePanel(){
+    const truth = await PALAISE_RESPO.truth("BEN");
+    const m = truth.move;
+
+    const panel = document.getElementById("movePanel");
+    panel.innerHTML = `
+        <b>move.edit</b><br>
+        Style: ${m.style}<br>
+        Mode: ${m.mode}<br>
+        Epoche: ${m.epoche}<br>
+        Highlight: ${m.highlight}<br>
+        Filter: ${m.filter}<br>
+    `;
+}
+setInterval(updatePanel, 200);
+
+
+/* ---------------------------
+   4) PQ Hub Animation
+---------------------------- */
+async function renderPQ(){
+    const truth = await PALAISE_RESPO.truth("BEN");
+    const hub = truth.pqVector;
+
+    const c = document.getElementById("pqHub");
+    const ctx = c.getContext("2d");
+
+    ctx.clearRect(0,0,600,200);
+
+    ctx.fillStyle = "#fff";
+    ctx.fillText("PQ‑Hub · Animierte Achsen", 20, 30);
+
+    const baseX = 300;
+    const baseY = 100;
+
+    function drawAxis(label, value, offset, color){
+        ctx.strokeStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(baseX, baseY);
+        ctx.lineTo(baseX + value*200, baseY + offset);
+        ctx.stroke();
+        ctx.fillStyle = color;
+        ctx.fillText(label + ": " + value.toFixed(6), baseX + value*200 + 10, baseY + offset);
+    }
+
+    drawAxis("D0 Root", hub.D0, -40, "#0f0");
+    drawAxis("D1 Achse", hub.D1, -20, "#6cf");
+    drawAxis("D2 TMP", hub.D2, 0, "#fc0");
+    drawAxis("D3 Lage", hub.D3, 20, "#f0f");
+    drawAxis("D4 Later", hub.D4, 40, "#0ff");
+    drawAxis("D5 Ort", hub.D5, 60, "#f00");
+}
+setInterval(renderPQ, 200);
+
 </script>
+
+</body>
+</html>
