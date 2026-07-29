@@ -72,10 +72,10 @@ async function renderDashboard(){
     ctx.fillText("REAL: " + truth.time6d.vector[2].toFixed(6), 20, 160);
 
     ctx.fillStyle = "#f0f";
-    ctx.fillText("Drift: " + truth.respo.drift.toFixed(6), 20, 200);
+    ctx.fillText("Drift: " + truth.truthFlow.drift.toFixed(6), 20, 200);
 
     ctx.fillStyle = "#0ff";
-    ctx.fillText("Stability: " + truth.respo.stability, 20, 240);
+    ctx.fillText("Stability: " + truth.truthFlow.stability, 20, 240);
 
     ctx.fillStyle = "#ff0";
     ctx.fillText("PQ Root: " + truth.pqVector.D0, 20, 280);
@@ -122,11 +122,6 @@ async function render3D(){
     ctx.beginPath();
     ctx.arc(300 + p.x, 175 + p.y, 10, 0, Math.PI*2);
     ctx.fill();
-
-    ctx.fillStyle = "#6cf";
-    ctx.fillText("ALT: " + ALT.toFixed(6), 20, 80);
-    ctx.fillText("GHOST: " + GHOST.toFixed(6), 20, 120);
-    ctx.fillText("REAL: " + REAL.toFixed(6), 20, 160);
 }
 setInterval(render3D, 100);
 
