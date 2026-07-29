@@ -18,3 +18,15 @@ export function PALAISE_raw_6D(canvasId, truth){
     ctx.fillStyle = "#fc0";
     ctx.fillText("Epoche: " + epoche, 20, 200);
 }
+<canvas id="hud6d" width="400" height="240"></canvas>
+
+<script type="module">
+import { PALAISE_RESPO } from "./PALAISE.RESPO.js";
+import { PALAISE_raw_6D } from "./PALAISE.raw.js";
+
+async function runHUD(){
+    const truth = await PALAISE_RESPO.truth("BEN");
+    PALAISE_raw_6D("hud6d", truth);
+}
+setInterval(runHUD, 200);
+</script>
