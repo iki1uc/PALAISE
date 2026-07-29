@@ -27,6 +27,21 @@ export const PALAISE_TRUTHFLOW = {
       missingTruth: truth.delta,
       status: "TRUTHFLOW ACTIVE"
     };
+    import { T6D } from "./TEM6D.js";
+
+export const TruthFlow = {
+    inject(name, truth, matrix, koopPook){
+        return {
+            name,
+            semantic: truth,
+            timeVector: [...T6D.t],
+            koopPook,
+            drift: Math.abs(T6D.t[1] - T6D.t[2]),
+            stability: T6D.t[0] > T6D.t[2] ? "ALT-dominant" : "REAL-dominant"
+        };
+    }
+};
+
 
     return { truth, move, respo };
   }
