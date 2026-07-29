@@ -1,0 +1,27 @@
+import { PALAISE_TRUTHFLOW } from "./PALAISE.TRUTHFLOW.js";
+import { PQ_RUN } from "./PQ.js";
+import { T6D } from "./TEM6D.js";
+
+export const PALAISE_RESPO = {
+
+  truth(name){
+
+    const flow = PALAISE_TRUTHFLOW.run(name);
+    const pq = PQ_RUN();
+
+    return {
+      name,
+      truth: flow.truth,
+      move: flow.move,
+      respo: flow.respo,
+
+      pqHub: pq.HUB,
+      pqVector: pq.VECTOR,
+
+      time6d: {
+        vector: [...T6D.t],
+        projected: T6D.project()
+      }
+    };
+  }
+};
