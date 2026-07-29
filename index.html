@@ -16,28 +16,6 @@
         border:1px solid #0f0;
         margin-bottom:20px;
     }
-    #movePanel {
-        position:absolute;
-        right:20px;
-        top:20px;
-        width:200px;
-        padding:10px;
-        background:#111;
-        color:#0f0;
-        border:1px solid #0f0;
-        font-family:monospace;
-    }
-    #moveButtons {
-        margin-top:20px;
-    }
-    #moveButtons button {
-        background:#222;
-        color:#0f0;
-        border:1px solid #0f0;
-        padding:5px 10px;
-        margin-right:5px;
-        cursor:pointer;
-    }
 </style>
 </head>
 
@@ -45,67 +23,151 @@
 
 <h1>PALAISE · PQ · 6D Premium Engine</h1>
 
-<!-- WebGL 3D Engine -->
-<canvas id="webgl3d" width="600" height="350"></canvas>
+<!-- ECO Ticker -->
+<div id="ecoTicker" style="
+    background:#222;
+    color:#0f0;
+    padding:10px;
+    margin-bottom:20px;
+    border:1px solid #0f0;
+"></div>
 
-<!-- PQ Kugelwolke -->
-<canvas id="pqCloud" width="600" height="350"></canvas>
+<!-- 6D Hyperfläche -->
+<canvas id="hyper6d" width="600" height="200"></canvas>
 
-<!-- 6D Heatmap -->
-<canvas id="heatmap" width="600" height="200"></canvas>
+<!-- Depth Shader Engine -->
+<canvas id="engineDepth" width="600" height="350"></canvas>
 
-<!-- move.edit Panel -->
-<div id="movePanel"></div>
+<!-- PQ Voxel Cube -->
+<canvas id="pqVoxel3d" width="600" height="350"></canvas>
 
-<!-- move.edit Buttons -->
-<div id="moveButtons"></div>
+<!-- move.edit Fenster -->
+<div id="moveWindow" style="
+    position:absolute;
+    left:20px;
+    top:20px;
+    width:250px;
+    height:200px;
+    background:#111;
+    border:1px solid #0f0;
+    color:#0f0;
+    padding:10px;
+    cursor:grab;
+">
+    <div>
+        <button id="minBtn">–</button>
+        <button id="maxBtn">+</button>
+    </div>
+    <div id="moveTabs">
+        <button data-tab="style">Style</button>
+        <button data-tab="mode">Mode</button>
+        <button data-tab="filter">Filter</button>
+    </div>
+    <div id="moveContent"></div>
+</div>
 
+<!-- ============================================================
+     SCRIPT 1 — ECO Ticker
+============================================================ -->
 <script type="module">
 import { PALAISE_RESPO } from "./PALAISE.RESPO.js";
 
-/* ============================================================
-   1) PREMIUM WEBGL 3D ENGINE
-   ============================================================ */
+async function updateECO(){
+    const truth = await PALAISE_RESPO.truth("BEN");
 
-const canvas = document.getElementById("webgl3d");
-const gl = canvas.getContext("webgl");
+    const env = truth.time6d.vector[2]; 
+    const comp = truth.pqVector.D0;     
+    const ops = truth.move.style;       
 
-if(!gl){
-    alert("WebGL nicht verfügbar");
+    const eco = document.getElementById("ecoTicker");
+
+    eco.innerHTML = `
+        ECO‑ENV: REAL=${env.toFixed(6)}  
+        ECO‑COMP: PQ‑Root=${comp.toFixed(6)}  
+        ECO‑OPS: move.edit=${ops}
+    `;
 }
+
+setInterval(updateECO, 300);
+</script>
+
+<!-- ============================================================
+     SCRIPT 2 — Hyperfläche 6D
+============================================================ -->
+<script type="module">
+import { PALAISE_RESPO } from "./PALAISE.RESPO.js";
+
+async function renderHyper6D(){
+    const truth = await PALAISE_RESPO.truth("BEN");
+
+    const ALT   = truth.time6d.vector[0];
+    const GHOST = truth.time6d.vector[1];
+    const REAL  = truth.time6d.vector[2];
+    const DRIFT = truth.truthFlow.drift;
+    const STAB  = truth.truthFlow.stability === "ALT-dominant" ? 1 : 0;
+    const LAGE  = truth.pqVector.D3;
+
+    const c = document.getElementById("hyper6d");
+    const ctx = c.getContext("2d");
+
+    ctx.clearRect(0,0,600,200);
+
+    for(let x=0;x<600;x++){
+        for(let y=0;y<200;y++){
+            const u = x/600;
+            const v = y/200;
+
+            const w = Math.sin((ALT+GHOST+REAL+DRIFT+STAB+LAGE)*10*u*v);
+
+            const col = Math.floor((w+1)/2*255);
+
+            ctx.fillStyle = `rgb(${col},${255-col},${col})`;
+            ctx.fillRect(x,y,1,1);
+        }
+    }
+}
+
+setInterval(renderHyper6D, 200);
+</script>
+
+<!-- ============================================================
+     SCRIPT 3 — Depth Shader Engine
+============================================================ -->
+<script type="module">
+import { PALAISE_RESPO } from "./PALAISE.RESPO.js";
+
+const canvasD = document.getElementById("engineDepth");
+const gl = canvasD.getContext("webgl");
 
 const vs = `
 attribute vec3 pos;
-uniform float angle;
-uniform vec3 scale;
+uniform mat4 proj;
+uniform mat4 view;
+uniform mat4 model;
+varying float depth;
+
 void main(){
-    float c = cos(angle);
-    float s = sin(angle);
-
-    vec3 p = vec3(
-        pos.x*c - pos.y*s,
-        pos.x*s + pos.y*c,
-        pos.z
-    ) * scale;
-
+    vec4 world = model * vec4(pos, 1.0);
+    depth = world.z;
     gl_PointSize = 8.0;
-    gl_Position = vec4(p, 1.0);
+    gl_Position = proj * view * world;
 }
 `;
 
 const fs = `
 precision mediump float;
-uniform vec3 color;
+varying float depth;
 void main(){
-    gl_FragColor = vec4(color, 1.0);
+    float shade = (depth + 1.0) / 2.0;
+    gl_FragColor = vec4(shade, shade*0.5, 0.0, 1.0);
 }
 `;
 
 function compile(type, src){
-    const shader = gl.createShader(type);
-    gl.shaderSource(shader, src);
-    gl.compileShader(shader);
-    return shader;
+    const sh = gl.createShader(type);
+    gl.shaderSource(sh, src);
+    gl.compileShader(sh);
+    return sh;
 }
 
 const vshader = compile(gl.VERTEX_SHADER, vs);
@@ -117,17 +179,39 @@ gl.attachShader(prog, fshader);
 gl.linkProgram(prog);
 gl.useProgram(prog);
 
-const pos = gl.getAttribLocation(prog, "pos");
-const angleLoc = gl.getUniformLocation(prog, "angle");
-const scaleLoc = gl.getUniformLocation(prog, "scale");
-const colorLoc = gl.getUniformLocation(prog, "color");
+const posLoc = gl.getAttribLocation(prog, "pos");
+const projLoc = gl.getUniformLocation(prog, "proj");
+const viewLoc = gl.getUniformLocation(prog, "view");
+const modelLoc = gl.getUniformLocation(prog, "model");
 
 const buf = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, buf);
 
+function mat4(){
+    return new Float32Array(16);
+}
+
+function perspective(fov, aspect, near, far){
+    const m = mat4();
+    const f = 1.0 / Math.tan(fov/2);
+    m[0] = f/aspect;
+    m[5] = f;
+    m[10] = (far+near)/(near-far);
+    m[11] = -1;
+    m[14] = (2*far*near)/(near-far);
+    return m;
+}
+
+function viewMatrix(){
+    const m = mat4();
+    m[0]=1; m[5]=1; m[10]=1; m[15]=1;
+    m[14] = -3;
+    return m;
+}
+
 let angle = 0;
 
-async function renderWebGL(){
+async function renderDepth(){
     const truth = await PALAISE_RESPO.truth("BEN");
 
     const ALT = truth.time6d.vector[0];
@@ -135,7 +219,7 @@ async function renderWebGL(){
     const REAL = truth.time6d.vector[2];
 
     const drift = truth.truthFlow.drift;
-    angle += drift * 0.1;
+    angle += drift * 0.05;
 
     const vertices = new Float32Array([
         ALT, GHOST, REAL,
@@ -143,13 +227,23 @@ async function renderWebGL(){
     ]);
 
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+    gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(posLoc);
 
-    gl.vertexAttribPointer(pos, 3, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(pos);
+    const proj = perspective(1.0, canvasD.width/canvasD.height, 0.1, 10.0);
+    const view = viewMatrix();
 
-    gl.uniform1f(angleLoc, angle);
-    gl.uniform3f(scaleLoc, 0.8, 0.8, 0.8);
-    gl.uniform3f(colorLoc, 0.0, 1.0, 0.0);
+    const model = mat4();
+    model[0] = Math.cos(angle);
+    model[1] = -Math.sin(angle);
+    model[4] = Math.sin(angle);
+    model[5] = Math.cos(angle);
+    model[10] = 1;
+    model[15] = 1;
+
+    gl.uniformMatrix4fv(projLoc, false, proj);
+    gl.uniformMatrix4fv(viewLoc, false, view);
+    gl.uniformMatrix4fv(modelLoc, false, model);
 
     gl.clearColor(0,0,0,1);
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -157,146 +251,52 @@ async function renderWebGL(){
     gl.drawArrays(gl.POINTS, 0, 2);
 }
 
-setInterval(renderWebGL, 100);
+setInterval(renderDepth, 100);
+</script>
 
+<!-- ============================================================
+     SCRIPT 4 — PQ Voxel Cube
+============================================================ -->
+<script type="module">
+import { PALAISE_RESPO } from "./PALAISE.RESPO.js";
 
-/* ============================================================
-   2) PQ KUGELWOLKE (Shader Particle System)
-   ============================================================ */
-
-const cloud = document.getElementById("pqCloud");
-const gl2 = cloud.getContext("webgl");
-
-const vs2 = `
-attribute vec3 pos;
-void main(){
-    gl_PointSize = 3.0;
-    gl_Position = vec4(pos, 1.0);
-}
-`;
-
-const fs2 = `
-precision mediump float;
-void main(){
-    gl_FragColor = vec4(1.0, 0.5, 0.0, 1.0);
-}
-`;
-
-function compile2(type, src){
-    const shader = gl2.createShader(type);
-    gl2.shaderSource(shader, src);
-    gl2.compileShader(shader);
-    return shader;
-}
-
-const vshader2 = compile2(gl2.VERTEX_SHADER, vs2);
-const fshader2 = compile2(gl2.FRAGMENT_SHADER, fs2);
-
-const prog2 = gl2.createProgram();
-gl2.attachShader(prog2, vshader2);
-gl2.attachShader(prog2, fshader2);
-gl2.linkProgram(prog2);
-gl2.useProgram(prog2);
-
-const pos2 = gl2.getAttribLocation(prog2, "pos");
-const buf2 = gl2.createBuffer();
-gl2.bindBuffer(gl2.ARRAY_BUFFER, buf2);
-
-async function renderPQCloud(){
+async function renderVoxel3D(){
     const truth = await PALAISE_RESPO.truth("BEN");
     const hub = truth.pqVector;
 
-    const particles = [];
-
-    for(let i=0;i<300;i++){
-        particles.push(
-            hub.D0 + (Math.random()-0.5)*0.3,
-            hub.D1 + (Math.random()-0.5)*0.3,
-            hub.D2 + (Math.random()-0.5)*0.3
-        );
-    }
-
-    gl2.bufferData(gl2.ARRAY_BUFFER, new Float32Array(particles), gl2.STATIC_DRAW);
-
-    gl2.vertexAttribPointer(pos2, 3, gl2.FLOAT, false, 0, 0);
-    gl2.enableVertexAttribArray(pos2);
-
-    gl2.clearColor(0,0,0,1);
-    gl2.clear(gl2.COLOR_BUFFER_BIT);
-
-    gl2.drawArrays(gl2.POINTS, 0, 300);
-}
-
-setInterval(renderPQCloud, 200);
-
-
-/* ============================================================
-   3) move.edit Panel + Buttons
-   ============================================================ */
-
-const panel = document.getElementById("movePanel");
-
-async function updatePanel(){
-    const truth = await PALAISE_RESPO.truth("BEN");
-    const m = truth.move;
-
-    panel.innerHTML = `
-        <b>move.edit</b><br>
-        Style: ${m.style}<br>
-        Mode: ${m.mode}<br>
-        Epoche: ${m.epoche}<br>
-        Highlight: ${m.highlight}<br>
-        Filter: ${m.filter}<br>
-    `;
-}
-setInterval(updatePanel, 200);
-
-const btnPanel = document.getElementById("moveButtons");
-
-btnPanel.innerHTML = `
-<button id="btnNeon">Neon</button>
-<button id="btnPulse">Pulse</button>
-<button id="btnGhost">Ghost</button>
-<button id="btnReal">Real</button>
-<button id="btnAlt">Alt</button>
-`;
-
-async function applyStyle(style){
-    const truth = await PALAISE_RESPO.truth("BEN");
-    truth.move.style = style;
-}
-
-document.getElementById("btnNeon").onclick = ()=>applyStyle("neon");
-document.getElementById("btnPulse").onclick = ()=>applyStyle("neon-pulse");
-document.getElementById("btnGhost").onclick = ()=>applyStyle("ghost");
-document.getElementById("btnReal").onclick = ()=>applyStyle("real");
-document.getElementById("btnAlt").onclick = ()=>applyStyle("alt");
-
-
-/* ============================================================
-   4) 6D HEATMAP
-   ============================================================ */
-
-async function renderHeatmap(){
-    const truth = await PALAISE_RESPO.truth("BEN");
-
-    const c = document.getElementById("heatmap");
+    const c = document.getElementById("pqVoxel3d");
     const ctx = c.getContext("2d");
 
-    ctx.clearRect(0,0,600,200);
+    ctx.clearRect(0,0,600,350);
 
-    const values = truth.time6d.vector;
+    const angle = truth.truthFlow.drift * 10;
 
-    values.forEach((v,i)=>{
-        const col = Math.floor(v*255);
-        ctx.fillStyle = `rgb(${col},0,${255-col})`;
-        ctx.fillRect(i*200,0,200,200);
-    });
+    for(let x=0;x<30;x++){
+        for(let y=0;y<15;y++){
+            const v = Math.sin((hub.D0+hub.D1+hub.D2)*0.5*x*y + angle);
+
+            const col = Math.floor((v+1)/2*255);
+
+            ctx.fillStyle = `rgb(${col},${255-col},${col})`;
+            ctx.fillRect(x*20, y*20, 20, 20);
+        }
+    }
 }
 
-setInterval(renderHeatmap, 200);
-
+setInterval(renderVoxel3D, 200);
 </script>
 
-</body>
-</html>
+<!-- ============================================================
+     SCRIPT 5 — move.edit Fenster
+============================================================ -->
+<script type="module">
+import { PALAISE_RESPO } from "./PALAISE.RESPO.js";
+
+let minimized = false;
+
+document.getElementById("minBtn").onclick = ()=>{
+    minimized = true;
+    document.getElementById("moveContent").style.display = "none";
+};
+
+document.getElementById("maxBtn").onclick = ()=>{
