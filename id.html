@@ -1,91 +1,12 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-<meta charset="UTF-8">
-<title>P · ID · Palais · Private RESPO</title>
+<canvas id="hud6d" width="400" height="260"></canvas>
 
-<style>
-  body { background:#000; color:#00ffff; font-family:Consolas; padding:30px; }
-  h1 { color:#33ccff; text-shadow:0 0 10px #00ffff; }
-  .box {
-    background:#111;
-    border:1px solid #333;
-    padding:20px;
-    margin-top:20px;
-    border-radius:8px;
-  }
-  pre {
-    background:#000;
-    border:1px solid #333;
-    padding:12px;
-    border-radius:6px;
-    white-space:pre-wrap;
-  }
-</style>
-</head>
+<script type="module">
+import { PALAISE_RESPO } from "./PALAISE.RESPO.js";
+import { PALAISE_raw_6D } from "./CHO.js";
 
-<body>
-
-<h1>P · Palais · ID</h1>
-
-<div class="box">
-<pre>
-PALAIS-ID: P-CORE
-BESITZER: lokal
-ZUGRIFF: privat
-MODUS: unabhängig
-RESPO: P.room
-TMP-MODULE: aktiv
-STATUS: stabil
-</pre>
-</div>
-
-<div class="box">
-<h2>Struktur</h2>
-<pre>
-P.room
-README.md
-id.html
-index.html
-
-TMP-Cluster:
-RESPO_ARG_SCAN.tmp
-SCHACH.tmp
-arg.tmp
-bauer.tmp
-c.tmp
-dame.tmp
-edit.tmp
-error.tmp
-fit.tmp
-help.tmp
-in.tmp
-morph.tmp
-nord.tmp
-octa.tmp
-operator.tmp
-ost.tmp
-pferd.tmp
-q.tmp
-schachac.tmp
-score.tmp
-skat.tmp
-sued.tmp
-tetriz.tmp
-tmp.a
-tmp.e
-tmp.g
-tmp.h
-tmp.o
-tmp.po.raer.tmp
-tmp.s
-up.tmp
-west.tmp
-x.tmp
-xarg.tmp
-z.tmp
-</pre>
-</div>
-
-</body>
-</html>
+async function runHUD(){
+    const truth = await PALAISE_RESPO.truth("BEN");
+    PALAISE_raw_6D("hud6d", truth);
+}
+setInterval(runHUD, 200);
+</script>
