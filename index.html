@@ -1,21 +1,22 @@
-<canvas id="chronik" width="500" height="300"></canvas>
+<canvas id="dashboard" width="600" height="350"></canvas>
 
 <script type="module">
 import { PALAISE_RESPO } from "./PALAISE.RESPO.js";
 
-async function renderChronik(){
+async function renderDashboard(){
+
     const truth = await PALAISE_RESPO.truth("BEN");
 
-    const c = document.getElementById("chronik");
+    const c = document.getElementById("dashboard");
     const ctx = c.getContext("2d");
 
-    ctx.clearRect(0,0,500,300);
+    ctx.clearRect(0,0,600,350);
 
     ctx.fillStyle = "#fff";
-    ctx.fillText("Chronik / Epoche", 20, 40);
+    ctx.fillText("PALAISE · PQ · 6D Dashboard", 20, 40);
 
     ctx.fillStyle = "#fc0";
-    ctx.fillText("Epoche: " + truth.epoche, 20, 80);
+    ctx.fillText("Epoche: " + truth.move.epoche, 20, 80);
 
     ctx.fillStyle = "#0f0";
     ctx.fillText("ALT: " + truth.time6d.vector[0].toFixed(6), 20, 120);
@@ -24,8 +25,14 @@ async function renderChronik(){
     ctx.fillText("REAL: " + truth.time6d.vector[2].toFixed(6), 20, 160);
 
     ctx.fillStyle = "#f0f";
-    ctx.fillText("Drift: " + truth.truthFlow.drift.toFixed(6), 20, 200);
+    ctx.fillText("Drift: " + truth.respo.drift.toFixed(6), 20, 200);
+
+    ctx.fillStyle = "#0ff";
+    ctx.fillText("Stability: " + truth.respo.stability, 20, 240);
+
+    ctx.fillStyle = "#ff0";
+    ctx.fillText("PQ Root: " + truth.pqVector.D0, 20, 280);
 }
 
-setInterval(renderChronik, 300);
+setInterval(renderDashboard, 300);
 </script>
